@@ -1,0 +1,32 @@
+{
+  "name": "@seefactory/mobile",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:h5": "taro build --type h5 --watch --port 18183 --host 0.0.0.0",
+    "build:h5": "taro build --type h5 && node scripts/write-h5-index.mjs",
+    "build:weapp": "taro build --type weapp"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.25.7",
+    "@tarojs/components": "4.0.8",
+    "@tarojs/helper": "4.0.8",
+    "@tarojs/plugin-framework-react": "4.0.8",
+    "@tarojs/plugin-platform-h5": "4.0.8",
+    "@tarojs/plugin-platform-weapp": "4.0.8",
+    "@tarojs/react": "4.0.8",
+    "@tarojs/runtime": "4.0.8",
+    "@tarojs/shared": "4.0.8",
+    "@tarojs/taro": "4.0.8",
+    "@tarojs/webpack5-runner": "4.0.8",
+    "babel-preset-taro": "4.0.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/preset-react": "^7.25.7",
+    "@tarojs/cli": "4.0.8"
+  }
+}
