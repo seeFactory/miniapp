@@ -77,7 +77,7 @@ export default function HomePage() {
       onRefresh={load}
       actions={[
         { label: '新建工作流', primary: true, onClick: () => navigateTo('/pages/workflows/index') },
-        { label: '模型测试', onClick: () => navigateTo('/pages/models/index') },
+        { label: '操练场', onClick: () => navigateTo('/pages/playground/index') },
         { label: '充值', onClick: () => navigateTo('/pages/wallet/index') },
       ]}
     >
@@ -94,6 +94,7 @@ export default function HomePage() {
         <View className="sf-panel">
           <View className="sf-inline-actions">
             <ActionButton variant="secondary" onClick={() => navigateTo('/pages/workflows/index')}>工作流</ActionButton>
+            <ActionButton variant="secondary" onClick={() => navigateTo('/pages/playground/index')}>操练场</ActionButton>
             <ActionButton variant="secondary" onClick={() => navigateTo('/pages/workshop/index')}>创意工坊</ActionButton>
             <ActionButton variant="secondary" onClick={() => navigateTo('/pages/tasks/index')}>调用记录</ActionButton>
             <ActionButton variant="secondary" onClick={() => navigateTo('/pages/assets/index')}>资产库</ActionButton>

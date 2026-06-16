@@ -270,10 +270,34 @@ const COMPONENT_META = {
     description: '调用图片模型生成宣传海报、封面或营销图。',
     tone: 'green',
   },
+  'text.dialogue': {
+    label: '文生文对话',
+    category: '生成',
+    description: '根据提示词、角色要求和上下文生成文本回复。',
+    tone: 'blue',
+  },
+  'vision.describe': {
+    label: '图生文理解',
+    category: '多模态',
+    description: '读取图片资产并输出结构化描述、提示词或分析文本。',
+    tone: 'blue',
+  },
+  'video.storyboard.generate': {
+    label: '文生视频',
+    category: '生成',
+    description: '把文本创意转成可追踪的视频生成任务与分镜资产。',
+    tone: 'green',
+  },
+  'video.image.animate': {
+    label: '图生视频',
+    category: '生成',
+    description: '基于图片资产生成视频运动描述和执行任务。',
+    tone: 'green',
+  },
   'image.resize': {
     label: '图片尺寸调整',
-    category: '处理',
-    description: '按目标尺寸输出适配小程序、H5 或广告位的图片。',
+    category: '兼容',
+    description: '旧版 workflow 的兼容节点，新建链路默认不再使用。',
     tone: 'yellow',
   },
   'asset.output': {
@@ -330,7 +354,7 @@ export function buildPosterGraph({
   palette = '低饱和新扁平',
   width = 1024,
   height = 1024,
-  includeResize = true,
+  includeResize = false,
 } = {}) {
   const nodes = [
     {
@@ -449,7 +473,7 @@ export function extractTaskAsset(task = {}) {
 }
 
 export function navigateTo(url) {
-  const tabPages = ['/pages/home/index', '/pages/workflows/index', '/pages/workshop/index', '/pages/tasks/index', '/pages/profile/index'];
+  const tabPages = ['/pages/home/index', '/pages/workflows/index', '/pages/playground/index', '/pages/workshop/index', '/pages/profile/index'];
   if (tabPages.includes(url)) {
     return Taro.switchTab({ url });
   }

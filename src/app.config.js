@@ -2,6 +2,7 @@ export default defineAppConfig({
   pages: [
     'pages/home/index',
     'pages/workflows/index',
+    'pages/playground/index',
     'pages/workshop/index',
     'pages/tasks/index',
     'pages/profile/index',
@@ -32,12 +33,12 @@ export default defineAppConfig({
         text: '工作流',
       },
       {
-        pagePath: 'pages/workshop/index',
-        text: '工坊',
+        pagePath: 'pages/playground/index',
+        text: '操练场',
       },
       {
-        pagePath: 'pages/tasks/index',
-        text: '记录',
+        pagePath: 'pages/workshop/index',
+        text: '工坊',
       },
       {
         pagePath: 'pages/profile/index',

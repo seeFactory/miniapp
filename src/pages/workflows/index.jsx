@@ -8,6 +8,7 @@ import {
   extractDraftFromWorkflow,
   graphSummary,
   money,
+  navigateTo,
   normalizePage,
   queryFrom,
   requireAuth,
@@ -23,7 +24,6 @@ import {
   Pager,
   Section,
   SelectField,
-  Segmented,
   StatGrid,
   StatusPill,
   TextAreaField,
@@ -54,7 +54,7 @@ const emptyDraft = {
   palette: '低饱和新扁平',
   width: 1024,
   height: 1024,
-  includeResize: true,
+  includeResize: false,
   licenseMode: 'closed',
   tags: '海报,自动化',
 };
@@ -296,7 +296,7 @@ export default function WorkflowsPage() {
       onRefresh={() => load(filters)}
       actions={[
         { label: '新建', primary: true, onClick: resetDraft },
-        { label: '记录', onClick: () => Taro.switchTab({ url: '/pages/tasks/index' }) },
+        { label: '记录', onClick: () => navigateTo('/pages/tasks/index') },
         { label: '资产', onClick: () => Taro.navigateTo({ url: '/pages/assets/index' }) },
       ]}
     >
@@ -305,7 +305,7 @@ export default function WorkflowsPage() {
           { label: '当前链路', value: draft.id ? `#${draft.id}` : '新草稿', hint: selected?.status ? statusText(selected.status) : '未保存', tone: 'dark' },
           { label: '节点', value: graph.nodes.length, hint: graphSummary(graph), tone: 'green' },
           { label: '预估费用', value: estimate === null ? '-' : money(estimate), hint: '按模型节点估算', tone: 'yellow' },
-          { label: '输出尺寸', value: `${draft.width}x${draft.height}`, hint: draft.includeResize ? '含尺寸适配' : '原始输出', tone: 'blue' },
+          { label: '输出尺寸', value: `${draft.width}x${draft.height}`, hint: '写入生成节点', tone: 'blue' },
         ]}
       />
 
@@ -347,16 +347,6 @@ export default function WorkflowsPage() {
             options={sizeOptions}
             onChange={(value) => patchDraft(parseSize(value))}
           />
-          <Text className="sf-field-label">尺寸适配</Text>
-          <Segmented
-            value={draft.includeResize ? 'yes' : 'no'}
-            options={[
-              { label: '启用', value: 'yes' },
-              { label: '关闭', value: 'no' },
-            ]}
-            onChange={(value) => patchDraft({ includeResize: value === 'yes' })}
-          />
-          <View className="sf-form-spacer" />
           <SelectField
             label="发布授权"
             value={draft.licenseMode}
@@ -393,7 +383,7 @@ export default function WorkflowsPage() {
               <ComponentChip component={component} key={component.component_key || component.key || component.id} />
             ))
           ) : (
-            ['input.text', 'image.poster.render', 'image.resize', 'asset.output'].map((key) => (
+            ['input.text', 'text.dialogue', 'vision.describe', 'image.poster.render', 'video.storyboard.generate', 'video.image.animate', 'asset.output'].map((key) => (
               <View className="sf-component-chip" key={key}>
                 <Text className="sf-component-name">{componentLabel(key)}</Text>
                 <Text className="sf-component-kind">{key}</Text>

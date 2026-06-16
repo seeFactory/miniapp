@@ -1,5 +1,9 @@
 import { defineConfig } from '@tarojs/cli';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+const resolveModule = (request) => path.normalize(require.resolve(request));
 
 export default defineConfig(async () => ({
   projectName: 'seefactory-mobile',
@@ -34,15 +38,15 @@ export default defineConfig(async () => ({
     webpackChain(chain) {
       chain.resolve.alias.set(
         '@tarojs/plugin-platform-h5/dist/runtime',
-        path.resolve(process.cwd(), 'node_modules/@tarojs/plugin-platform-h5/dist/runtime/index.js')
+        resolveModule('@tarojs/plugin-platform-h5/dist/runtime/index.js')
       );
       chain.resolve.alias.set(
         '@tarojs/plugin-framework-react/dist/runtime',
-        path.resolve(process.cwd(), 'node_modules/@tarojs/plugin-framework-react/dist/runtime.js')
+        resolveModule('@tarojs/plugin-framework-react/dist/runtime.js')
       );
       chain.resolve.alias.set(
         '@tarojs/components/dist/components$',
-        path.resolve(process.cwd(), 'node_modules/@tarojs/components/dist/components/index.js')
+        resolveModule('@tarojs/components/dist/components/index.js')
       );
     },
     router: {
