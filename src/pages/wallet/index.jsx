@@ -116,7 +116,7 @@ export default function WalletPage() {
 
       <Section title="充值">
         <View className="sf-form-panel">
-          <View className="sf-inline-actions">
+          <View className="sf-inline-actions sf-amount-grid">
             {['50', '100', '500', '1000'].map((value) => (
               <ActionButton key={value} variant={amount === value ? 'primary' : 'secondary'} onClick={() => setAmount(value)}>
                 {value} 元
