@@ -7,6 +7,7 @@ import {
   money,
   navigateTo,
   requireAuth,
+  setThemePreference,
 } from '../../lib';
 import {
   ActionButton,
@@ -37,12 +38,14 @@ export default function ProfilePage() {
       ]);
       setUser(me);
       setSummary(nextSummary);
+      const theme = me.preferences?.theme || 'light';
       setProfile({
         displayName: me.displayName || '',
         email: me.email || '',
-        theme: me.preferences?.theme || 'light',
+        theme,
         locale: me.preferences?.locale || 'zh-CN',
       });
+      setThemePreference(theme);
     } catch (error) {
       setTone('error');
       setMessage(error.message || '个人资料加载失败。');
@@ -73,6 +76,7 @@ export default function ProfilePage() {
         },
       });
       setUser(next);
+      setThemePreference(profile.theme);
       setTone('good');
       setMessage('个人资料已保存。');
     } catch (error) {
@@ -150,7 +154,10 @@ export default function ProfilePage() {
               { label: '暗色', value: 'dark' },
               { label: '跟随系统', value: 'system' },
             ]}
-            onChange={(value) => setProfile((prev) => ({ ...prev, theme: value }))}
+            onChange={(value) => {
+              setThemePreference(value);
+              setProfile((prev) => ({ ...prev, theme: value }));
+            }}
           />
           <SelectField
             label="语言"

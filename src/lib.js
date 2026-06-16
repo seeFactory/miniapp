@@ -10,6 +10,7 @@ export const API_BASE =
     : 'http://localhost:18280');
 
 const TOKEN_KEY = 'seefactory_token';
+const THEME_KEY = 'seefactory_theme';
 
 export function getToken() {
   return Taro.getStorageSync(TOKEN_KEY) || '';
@@ -21,6 +22,47 @@ export function setToken(token) {
 
 export function clearToken() {
   Taro.removeStorageSync(TOKEN_KEY);
+}
+
+export function getThemePreference() {
+  const taroTheme = Taro.getStorageSync(THEME_KEY);
+  if (taroTheme) return taroTheme;
+  if (typeof window !== 'undefined') {
+    return window.localStorage?.getItem(THEME_KEY) || 'light';
+  }
+  return 'light';
+}
+
+export function resolveThemePreference(preference = 'light') {
+  if (preference === 'dark') return 'dark';
+  if (preference === 'system' && typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
+}
+
+export function applyThemePreference(preference = getThemePreference()) {
+  if (typeof document === 'undefined') return resolveThemePreference(preference);
+  const resolved = resolveThemePreference(preference);
+  document.documentElement.dataset.sfTheme = resolved;
+  document.documentElement.dataset.sfThemePreference = preference;
+  return resolved;
+}
+
+export function setThemePreference(preference = 'light') {
+  Taro.setStorageSync(THEME_KEY, preference);
+  if (typeof window !== 'undefined') {
+    window.localStorage?.setItem(THEME_KEY, preference);
+  }
+  const resolved = applyThemePreference(preference);
+  if (typeof window !== 'undefined') {
+    if (typeof CustomEvent !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sf-theme-change', { detail: { preference, resolved } }));
+    } else {
+      window.dispatchEvent(new Event('sf-theme-change'));
+    }
+  }
+  return resolved;
 }
 
 export function requireAuth() {
