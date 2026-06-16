@@ -22,8 +22,11 @@ import {
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [invite, setInvite] = useState(null);
   const [profile, setProfile] = useState({ displayName: '', email: '', theme: 'light', locale: 'zh-CN' });
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '' });
+  const [couponCode, setCouponCode] = useState('');
+  const [withdraw, setWithdraw] = useState({ amountCents: 100, channel: 'alipay', accountName: '', accountNo: '' });
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
@@ -32,12 +35,14 @@ export default function ProfilePage() {
     if (!requireAuth()) return;
     setMessage('');
     try {
-      const [me, nextSummary] = await Promise.all([
+      const [me, nextSummary, inviteInfo] = await Promise.all([
         api('/api/users/me'),
         api('/api/users/me/summary'),
+        api('/api/users/me/invite'),
       ]);
       setUser(me);
       setSummary(nextSummary);
+      setInvite(inviteInfo);
       const theme = me.preferences?.theme || 'light';
       setProfile({
         displayName: me.displayName || '',
@@ -110,6 +115,56 @@ export default function ProfilePage() {
     }
   };
 
+  const redeemCoupon = async () => {
+    if (!couponCode.trim()) {
+      setTone('error');
+      setMessage('请输入优惠券码。');
+      return;
+    }
+    setBusy('coupon');
+    try {
+      const result = await api('/api/coupons/redeem', {
+        method: 'POST',
+        data: { code: couponCode.trim() },
+      });
+      setCouponCode('');
+      setTone('good');
+      setMessage(`优惠券已兑换，入账 ${money(result.amountCents || 0)}。`);
+      await load();
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '优惠券兑换失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const createWithdraw = async () => {
+    if (!withdraw.accountName || !withdraw.accountNo || Number(withdraw.amountCents) <= 0) {
+      setTone('error');
+      setMessage('请补全提现金额和收款账号。');
+      return;
+    }
+    setBusy('withdraw');
+    try {
+      const result = await api('/api/withdraw-orders', {
+        method: 'POST',
+        data: {
+          ...withdraw,
+          amountCents: Number(withdraw.amountCents || 0),
+        },
+      });
+      setTone('good');
+      setMessage(`提现申请 #${result.id} 已创建。`);
+      await load();
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '提现申请失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const logout = () => {
     clearToken();
     Taro.navigateTo({ url: '/pages/login/index' });
@@ -129,6 +184,31 @@ export default function ProfilePage() {
         { label: '资产', onClick: () => navigateTo('/pages/assets/index') },
       ]}
     >
+      <Section title="资金与邀请">
+        <View className="sf-form-panel">
+          <View className="sf-record">
+            <View>
+              <TextField label="邀请码" value={invite?.code || ''} placeholder="加载中" onChange={() => {}} />
+            </View>
+          </View>
+          <TextField label="优惠券码" value={couponCode} placeholder="输入优惠券码" onChange={setCouponCode} />
+          <ActionButton loading={busy === 'coupon'} onClick={redeemCoupon}>兑换优惠券</ActionButton>
+          <TextField label="提现金额（分）" value={String(withdraw.amountCents)} placeholder="100" onChange={(value) => setWithdraw((prev) => ({ ...prev, amountCents: Number(value || 0) }))} />
+          <SelectField
+            label="提现渠道"
+            value={withdraw.channel}
+            options={[
+              { label: '支付宝', value: 'alipay' },
+              { label: '微信', value: 'wechat' },
+            ]}
+            onChange={(value) => setWithdraw((prev) => ({ ...prev, channel: value }))}
+          />
+          <TextField label="收款姓名" value={withdraw.accountName} placeholder="收款人姓名" onChange={(value) => setWithdraw((prev) => ({ ...prev, accountName: value }))} />
+          <TextField label="收款账号" value={withdraw.accountNo} placeholder="支付宝/微信账号" onChange={(value) => setWithdraw((prev) => ({ ...prev, accountNo: value }))} />
+          <ActionButton variant="secondary" loading={busy === 'withdraw'} onClick={createWithdraw}>提交提现申请</ActionButton>
+        </View>
+      </Section>
+
       {user ? (
         <StatGrid
           items={[

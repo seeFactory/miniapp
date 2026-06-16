@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
@@ -35,6 +36,7 @@ export default function LoginPage() {
               email,
               password,
               displayName: displayName || email.split('@')[0],
+              inviteCode: inviteCode || undefined,
             };
       const result = await api(mode === 'login' ? '/api/auth/login' : '/api/auth/register', {
         method: 'POST',
@@ -70,12 +72,15 @@ export default function LoginPage() {
 
         <View className="sf-form-spacer" />
         {mode === 'register' ? (
+          <>
           <TextField
             label="昵称"
             value={displayName}
             placeholder="显示在创意工坊中的名字"
             onChange={setDisplayName}
           />
+          <TextField label="邀请码" value={inviteCode} placeholder="可选" onChange={setInviteCode} />
+          </>
         ) : null}
         <TextField label="邮箱" value={email} placeholder="you@example.com" onChange={setEmail} />
         <TextField
