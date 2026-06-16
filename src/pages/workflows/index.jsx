@@ -19,7 +19,6 @@ import {
   ComponentChip,
   copyText,
   EmptyState,
-  Notice,
   PageShell,
   Pager,
   Section,
@@ -40,10 +39,10 @@ const paletteOptions = [
 ];
 
 const sizeOptions = [
-  { label: '方图 1024×1024', value: '1024x1024' },
-  { label: '海报 1080×1440', value: '1080x1440' },
-  { label: '小程序卡片 750×1000', value: '750x1000' },
-  { label: '横幅 1600×900', value: '1600x900' },
+  { label: '方图 1024x1024', value: '1024x1024' },
+  { label: '海报 1080x1440', value: '1080x1440' },
+  { label: '小程序卡片 750x1000', value: '750x1000' },
+  { label: '横幅 1600x900', value: '1600x900' },
 ];
 
 const emptyDraft = {
@@ -85,7 +84,6 @@ export default function WorkflowsPage() {
   const [busy, setBusy] = useState('');
 
   const graph = useMemo(() => draftGraph(draft), [draft]);
-
   const patchDraft = (values) => setDraft((prev) => ({ ...prev, ...values }));
 
   const load = async (nextFilters = filters) => {
@@ -292,7 +290,7 @@ export default function WorkflowsPage() {
     <PageShell
       eyebrow="No-code Workflow"
       title="工作流控制台"
-      subtitle="移动端使用点选组件、参数表单和纵向链路预览完成同一套 workflow 管理。"
+      subtitle="用表单、组件和纵向链路预览完成移动端工作流管理。"
       message={message}
       tone={tone}
       onRefresh={() => load(filters)}
@@ -307,7 +305,7 @@ export default function WorkflowsPage() {
           { label: '当前链路', value: draft.id ? `#${draft.id}` : '新草稿', hint: selected?.status ? statusText(selected.status) : '未保存', tone: 'dark' },
           { label: '节点', value: graph.nodes.length, hint: graphSummary(graph), tone: 'green' },
           { label: '预估费用', value: estimate === null ? '-' : money(estimate), hint: '按模型节点估算', tone: 'yellow' },
-          { label: '输出尺寸', value: `${draft.width}×${draft.height}`, hint: draft.includeResize ? '含尺寸适配' : '原始输出', tone: 'blue' },
+          { label: '输出尺寸', value: `${draft.width}x${draft.height}`, hint: draft.includeResize ? '含尺寸适配' : '原始输出', tone: 'blue' },
         ]}
       />
 
@@ -384,11 +382,11 @@ export default function WorkflowsPage() {
         </View>
       </Section>
 
-      <Section title="链路预览" subtitle="移动端用纵向产出链确认输入、模型处理和输出节点。">
+      <Section title="链路预览" subtitle="用纵向链路确认输入、模型处理和输出节点。">
         <WorkflowChain graph={graph} />
       </Section>
 
-      <Section title="组件库" subtitle="后端组件定义驱动，移动端使用本地中文元信息修正展示。">
+      <Section title="组件库" subtitle="后端组件定义驱动，移动端用本地中文元信息修正展示。">
         <View className="sf-component-grid">
           {components.length ? (
             components.map((component) => (

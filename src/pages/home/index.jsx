@@ -71,7 +71,7 @@ export default function HomePage() {
     <PageShell
       eyebrow={user?.displayName ? `你好，${user.displayName}` : 'Workspace'}
       title="生产控制台"
-      subtitle="在手机上查看余额、任务、工作流和创意工坊，不必切回桌面端。"
+      subtitle="移动端优先展示今天最需要处理的余额、链路、任务和工坊入口。"
       message={message}
       tone={tone}
       onRefresh={load}
@@ -90,10 +90,7 @@ export default function HomePage() {
         ]}
       />
 
-      <Section
-        title="快捷入口"
-        subtitle="移动端保留 Dashboard 的完整核心职能。"
-      >
+      <Section title="快捷入口" subtitle="常用操作控制在一屏内，方便拇指直接触达。">
         <View className="sf-panel">
           <View className="sf-inline-actions">
             <ActionButton variant="secondary" onClick={() => navigateTo('/pages/workflows/index')}>工作流</ActionButton>
@@ -106,7 +103,7 @@ export default function HomePage() {
 
       <Section
         title="最近工作流"
-        action={{ label: '查看全部', onClick: () => navigateTo('/pages/workflows/index') }}
+        action={{ label: '全部', onClick: () => navigateTo('/pages/workflows/index') }}
       >
         {workflows.length ? (
           workflows.map((workflow) => (
@@ -123,7 +120,7 @@ export default function HomePage() {
 
       <Section
         title="最近任务"
-        action={{ label: '调用记录', onClick: () => navigateTo('/pages/tasks/index') }}
+        action={{ label: '记录', onClick: () => navigateTo('/pages/tasks/index') }}
       >
         {tasks.length ? (
           tasks.map((task) => (
@@ -144,7 +141,7 @@ export default function HomePage() {
             </View>
           ))
         ) : (
-          <EmptyState title="暂无调用记录" subtitle="运行工作流或工坊样例后会生成任务。"/>
+          <EmptyState title="暂无调用记录" subtitle="运行工作流或工坊样例后会生成任务。" />
         )}
       </Section>
 
@@ -168,7 +165,7 @@ export default function HomePage() {
             </View>
           ))
         ) : (
-          <EmptyState title="工坊暂时为空" subtitle="发布工作流后，它会出现在这里供用户运行。"/>
+          <EmptyState title="工坊暂时为空" subtitle="发布工作流后，它会出现在这里供用户运行。" />
         )}
       </Section>
     </PageShell>

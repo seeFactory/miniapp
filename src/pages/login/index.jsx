@@ -55,7 +55,7 @@ export default function LoginPage() {
       <Image className="sf-login-logo" src="/brand/logo-icon.png" mode="aspectFit" />
       <Text className="sf-login-title">seeFactory</Text>
       <Text className="sf-login-sub">
-        用同一套账号管理工作流、模型调用、资产、账单和创意工坊。
+        在手机上管理工作流、模型调度、资产、账单和创意工坊。登录后即可继续桌面端的生产链路。
       </Text>
 
       <View className="sf-form-panel">

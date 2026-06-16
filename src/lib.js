@@ -189,6 +189,7 @@ export function reasonText(value) {
     model_call: '模型调用',
     refund: '退款',
     adjustment: '调账',
+    admin_balance_adjust: '后台调账',
   };
   return map[value] || value || '-';
 }
@@ -271,7 +272,7 @@ export function workflowSteps(graph) {
     const componentKey = node.component || node.type || node.componentKey;
     const meta = componentMeta(componentKey, node);
     return {
-      id: node.id || `${node.component}-${index}`,
+      id: node.id || `${componentKey}-${index}`,
       label: node.label || meta.label,
       component: componentKey,
       category: meta.category,

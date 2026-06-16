@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text } from '../../h5-components';
+import { View } from '../../h5-components';
 import Taro from '@tarojs/taro';
 import {
   api,
@@ -115,7 +115,7 @@ export default function ProfilePage() {
     <PageShell
       eyebrow={user?.role ? `Role: ${user.role}` : 'Profile'}
       title="我的账户"
-      subtitle="管理资料、偏好、安全设置，以及快速进入完整移动 Dashboard 模块。"
+      subtitle="管理资料、偏好、安全设置，以及快速进入移动端完整功能模块。"
       message={message}
       tone={tone}
       onRefresh={load}

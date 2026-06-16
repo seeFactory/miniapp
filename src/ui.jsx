@@ -11,15 +11,24 @@ import {
   workflowSteps,
 } from './lib';
 
-export function PageShell({ eyebrow, title, subtitle, children, message, tone = 'info', actions = [], onRefresh }) {
+export function PageShell({
+  eyebrow,
+  title,
+  subtitle,
+  children,
+  message,
+  tone = 'info',
+  actions = [],
+  onRefresh,
+}) {
   return (
     <View className="sf-page">
       <View className="sf-topbar">
         <View className="sf-brand">
           <Image className="sf-brand-logo" src="/brand/logo-icon.png" mode="aspectFit" />
-          <View>
+          <View className="sf-brand-copy">
             <Text className="sf-brand-name">seeFactory</Text>
-            <Text className="sf-brand-sub">移动控制台</Text>
+            <Text className="sf-brand-sub">移动工作台</Text>
           </View>
         </View>
         {onRefresh ? (
@@ -67,7 +76,7 @@ export function Section({ title, subtitle, action, children }) {
   return (
     <View className="sf-section">
       <View className="sf-section-head">
-        <View>
+        <View className="sf-section-copy">
           <Text className="sf-section-title">{title}</Text>
           {subtitle ? <Text className="sf-section-subtitle">{subtitle}</Text> : null}
         </View>
