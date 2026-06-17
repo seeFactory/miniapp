@@ -4,8 +4,10 @@ import Taro from '@tarojs/taro';
 import {
   api,
   dateTime,
+  getToken,
   graphSummary,
   licenseText,
+  money,
   normalizePage,
   queryFrom,
   requireAuth,
@@ -25,16 +27,20 @@ import {
 } from '../../ui';
 
 export default function WorkshopPage() {
-  const [filters, setFilters] = useState({ page: 1, pageSize: 6, q: '', licenseMode: 'all' });
+  const [filters, setFilters] = useState({ page: 1, pageSize: 6, q: '', licenseMode: 'all', sort: 'popular' });
   const [page, setPage] = useState(normalizePage([], 6));
   const [selected, setSelected] = useState(null);
+  const [comments, setComments] = useState(normalizePage([], 6));
+  const [estimate, setEstimate] = useState(null);
   const [runPrompt, setRunPrompt] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [rating, setRating] = useState(5);
+  const [report, setReport] = useState({ reason: '内容违规', detail: '' });
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
 
   const load = async (nextFilters = filters) => {
-    if (!requireAuth()) return;
     setMessage('');
     try {
       const payload = await api(`/api/workshop/items${queryFrom(nextFilters)}`);
@@ -58,8 +64,14 @@ export default function WorkshopPage() {
   const openItem = async (item) => {
     setBusy(`open-${item.id}`);
     try {
-      const detail = await api(`/api/workshop/items/${item.id}`);
+      const [detail, commentPayload, cost] = await Promise.all([
+        api(`/api/workshop/items/${item.id}`),
+        api(`/api/workshop/items/${item.id}/comments?page=1&pageSize=6`),
+        getToken() ? api(`/api/workshop/items/${item.id}/estimate`).catch(() => null) : Promise.resolve(null),
+      ]);
       setSelected(detail);
+      setComments(normalizePage(commentPayload, 6));
+      setEstimate(cost);
       setRunPrompt(detail.summary || '');
       setTone('good');
       setMessage(`已打开「${detail.title}」。`);
@@ -72,6 +84,7 @@ export default function WorkshopPage() {
   };
 
   const runItem = async (item = selected) => {
+    if (!requireAuth()) return;
     if (!item?.id) {
       setTone('error');
       setMessage('请先选择一个工坊样例。');
@@ -95,6 +108,7 @@ export default function WorkshopPage() {
   };
 
   const cloneItem = async (item = selected) => {
+    if (!requireAuth()) return;
     if (!item?.id) return;
     if (item.license_mode !== 'open') {
       setTone('error');
@@ -109,6 +123,74 @@ export default function WorkshopPage() {
     } catch (error) {
       setTone('error');
       setMessage(error.message || '克隆失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const favoriteItem = async (item = selected) => {
+    if (!requireAuth() || !item?.id) return;
+    setBusy(`favorite-${item.id}`);
+    try {
+      await api(`/api/workshop/items/${item.id}/favorite`, { method: 'POST' });
+      setTone('good');
+      setMessage('已收藏该样例。');
+      await openItem(item);
+      await load(filters);
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '收藏失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const rateItem = async (item = selected) => {
+    if (!requireAuth() || !item?.id) return;
+    setBusy(`rate-${item.id}`);
+    try {
+      await api(`/api/workshop/items/${item.id}/rating`, { method: 'POST', data: { rating: Number(rating) } });
+      setTone('good');
+      setMessage('评分已提交。');
+      await openItem(item);
+      await load(filters);
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '评分失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const commentItem = async (item = selected) => {
+    if (!requireAuth() || !item?.id || !commentText.trim()) return;
+    setBusy(`comment-${item.id}`);
+    try {
+      await api(`/api/workshop/items/${item.id}/comments`, { method: 'POST', data: { content: commentText.trim() } });
+      setCommentText('');
+      setTone('good');
+      setMessage('评论已发布。');
+      await openItem(item);
+      await load(filters);
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '评论失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const reportItem = async (item = selected) => {
+    if (!requireAuth() || !item?.id) return;
+    setBusy(`report-${item.id}`);
+    try {
+      await api(`/api/workshop/items/${item.id}/report`, { method: 'POST', data: report });
+      setReport({ reason: '内容违规', detail: '' });
+      setTone('good');
+      setMessage('举报已提交，等待管理员审核。');
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '举报失败。');
     } finally {
       setBusy('');
     }
@@ -139,10 +221,20 @@ export default function WorkshopPage() {
             ]}
             onChange={(value) => applyFilters({ licenseMode: value, page: 1 })}
           />
+          <SelectField
+            value={filters.sort}
+            options={[
+              { label: '热门', value: 'popular' },
+              { label: '最新', value: 'latest' },
+              { label: '收入', value: 'income' },
+              { label: '评分', value: 'rating' },
+            ]}
+            onChange={(value) => applyFilters({ sort: value, page: 1 })}
+          />
         </View>
         <View className="sf-inline-actions">
           <ActionButton variant="secondary" onClick={() => applyFilters({ page: 1 })}>搜索</ActionButton>
-          <ActionButton variant="secondary" onClick={() => applyFilters({ q: '', licenseMode: 'all', page: 1 })}>重置</ActionButton>
+          <ActionButton variant="secondary" onClick={() => applyFilters({ q: '', licenseMode: 'all', sort: 'popular', page: 1 })}>重置</ActionButton>
         </View>
       </Section>
 
@@ -163,8 +255,8 @@ export default function WorkshopPage() {
                 {(item.tags || []).slice(0, 3).map((tag) => <Text className="sf-tag" key={tag}>{tag}</Text>)}
               </View>
               <View className="sf-record-foot">
-                <Text>{item.author_name || '创作者'}</Text>
-                <Text>{busy === `open-${item.id}` ? '加载中' : `运行 ${item.run_count || 0}`}</Text>
+                <Text>{item.author_name || '创作者'} · {money(item.price_cents || 0)}</Text>
+                <Text>{busy === `open-${item.id}` ? '加载中' : `评分 ${Number(item.avg_rating || 0).toFixed(1)}`}</Text>
               </View>
             </View>
           ))
@@ -179,6 +271,10 @@ export default function WorkshopPage() {
           <View className="sf-form-panel">
             <Text className="sf-record-title">{selected.title}</Text>
             <Text className="sf-record-sub">{selected.summary || selected.description || '暂无说明。'}</Text>
+            <View className="sf-record-foot">
+              <Text>预估 {estimate ? money(estimate.estimatedCostCents) : money(selected.price_cents || 0)}</Text>
+              <Text>收藏 {selected.favorite_count || 0} · 评论 {selected.comment_count || 0}</Text>
+            </View>
             <View className="sf-form-spacer" />
             <TextAreaField
               label="运行提示词"
@@ -195,7 +291,38 @@ export default function WorkshopPage() {
             <View className="sf-inline-actions">
               <ActionButton loading={busy === `run-${selected.id}`} onClick={() => runItem(selected)}>运行样例</ActionButton>
               <ActionButton variant="secondary" loading={busy === `clone-${selected.id}`} onClick={() => cloneItem(selected)}>克隆</ActionButton>
+              <ActionButton variant="secondary" loading={busy === `favorite-${selected.id}`} onClick={() => favoriteItem(selected)}>收藏</ActionButton>
             </View>
+            <View className="sf-form-spacer" />
+            <SelectField
+              label="评分"
+              value={rating}
+              options={[5, 4, 3, 2, 1].map((value) => ({ label: `${value} 星`, value }))}
+              onChange={setRating}
+            />
+            <ActionButton variant="secondary" loading={busy === `rate-${selected.id}`} onClick={() => rateItem(selected)}>提交评分</ActionButton>
+            <TextAreaField
+              label="评论"
+              value={commentText}
+              placeholder="写下这个 workflow 适合的使用场景"
+              onChange={setCommentText}
+            />
+            <ActionButton variant="secondary" loading={busy === `comment-${selected.id}`} onClick={() => commentItem(selected)}>发布评论</ActionButton>
+            <View className="sf-event-list">
+              {comments.items.length ? (
+                comments.items.map((comment) => (
+                  <View className="sf-event" key={comment.id}>
+                    <Text className="sf-event-title">{comment.user_name || '用户'}</Text>
+                    <Text className="sf-event-time">{comment.content}</Text>
+                  </View>
+                ))
+              ) : (
+                <EmptyState title="暂无评论" subtitle="运行体验或改造建议可以写在这里。" />
+              )}
+            </View>
+            <TextField label="举报原因" value={report.reason} placeholder="内容违规" onChange={(value) => setReport((prev) => ({ ...prev, reason: value }))} />
+            <TextAreaField label="举报详情" value={report.detail} placeholder="描述具体问题" onChange={(value) => setReport((prev) => ({ ...prev, detail: value }))} />
+            <ActionButton variant="warn" loading={busy === `report-${selected.id}`} onClick={() => reportItem(selected)}>举报</ActionButton>
           </View>
         ) : (
           <EmptyState title="未选择样例" subtitle="点击上方任意工坊作品查看详情。" />

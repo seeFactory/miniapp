@@ -57,6 +57,7 @@ const emptyDraft = {
   includeResize: false,
   licenseMode: 'closed',
   tags: '海报,自动化',
+  priceCents: 0,
 };
 
 function draftGraph(draft) {
@@ -291,6 +292,7 @@ export default function WorkflowsPage() {
         method: 'POST',
         data: {
           licenseMode: draft.licenseMode,
+          priceCents: Number(draft.priceCents || 0),
           tags: draft.tags
             .split(',')
             .map((tag) => tag.trim())
@@ -428,6 +430,13 @@ export default function WorkflowsPage() {
             value={draft.tags}
             placeholder="用逗号分隔"
             onChange={(value) => patchDraft({ tags: value })}
+          />
+          <TextField
+            label="售价（分）"
+            value={String(draft.priceCents || 0)}
+            type="number"
+            placeholder="0 表示免费"
+            onChange={(value) => patchDraft({ priceCents: Number(value || 0) })}
           />
           <View className="sf-inline-actions">
             <ActionButton loading={busy === 'save'} onClick={saveWorkflow}>保存</ActionButton>
