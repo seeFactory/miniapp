@@ -25,7 +25,9 @@ import {
 
 export default function TasksPage() {
   const [filters, setFilters] = useState({ page: 1, pageSize: 8, q: '', status: 'all' });
+  const [providerFilters, setProviderFilters] = useState({ page: 1, pageSize: 8, q: '', status: 'all' });
   const [page, setPage] = useState(normalizePage([], 8));
+  const [providerJobs, setProviderJobs] = useState(normalizePage([], 8));
   const [selected, setSelected] = useState(null);
   const [events, setEvents] = useState([]);
   const [message, setMessage] = useState('');
@@ -44,8 +46,20 @@ export default function TasksPage() {
     }
   };
 
+  const loadProviderJobs = async (nextFilters = providerFilters) => {
+    if (!requireAuth()) return;
+    try {
+      const payload = await api(`/api/provider-jobs${queryFrom(nextFilters)}`);
+      setProviderJobs(normalizePage(payload, nextFilters.pageSize));
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || 'Provider 任务加载失败。');
+    }
+  };
+
   useEffect(() => {
     load();
+    loadProviderJobs();
   }, []);
 
   const applyFilters = (values) => {
@@ -90,6 +104,27 @@ export default function TasksPage() {
     }
   };
 
+  const applyProviderFilters = (values) => {
+    const next = { ...providerFilters, ...values };
+    setProviderFilters(next);
+    loadProviderJobs(next);
+  };
+
+  const refreshProviderJob = async (job) => {
+    setBusy(`provider-${job.id}`);
+    try {
+      const next = await api(`/api/provider-jobs/${job.id}/refresh`, { method: 'POST' });
+      setTone('good');
+      setMessage(`Provider 任务 #${job.id} 已同步为 ${statusText(next.status)}。`);
+      await loadProviderJobs(providerFilters);
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || 'Provider 任务同步失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const outputUrl = selected ? assetUrl(extractTaskAsset(selected)) : '';
 
   return (
@@ -99,7 +134,10 @@ export default function TasksPage() {
       subtitle="按状态检索每一次 workflow 调度，查看事件、成本和输出资产。"
       message={message}
       tone={tone}
-      onRefresh={() => load(filters)}
+      onRefresh={() => {
+        load(filters);
+        loadProviderJobs(providerFilters);
+      }}
     >
       <Section title="筛选">
         <View className="sf-toolbar">
@@ -148,6 +186,60 @@ export default function TasksPage() {
           <EmptyState title="暂无任务" subtitle="运行工作流或工坊样例后，会在这里看到调用记录。" />
         )}
         <Pager page={page.page} totalPages={page.totalPages} total={page.total} onChange={(nextPage) => applyFilters({ page: nextPage })} />
+      </Section>
+
+      <Section title="Provider 视频任务" subtitle="跟踪上游异步生视频任务、回调等待和输出资产。">
+        <View className="sf-toolbar">
+          <TextField
+            value={providerFilters.q}
+            placeholder="搜索 Provider、模型、上游任务号"
+            onChange={(value) => setProviderFilters((prev) => ({ ...prev, q: value }))}
+          />
+          <SelectField
+            value={providerFilters.status}
+            options={[
+              { label: '全部状态', value: 'all' },
+              { label: '排队中', value: 'queued' },
+              { label: '运行中', value: 'running' },
+              { label: '等待回调', value: 'waiting_callback' },
+              { label: '已完成', value: 'succeeded' },
+              { label: '失败', value: 'failed' },
+              { label: '已取消', value: 'cancelled' },
+            ]}
+            onChange={(value) => applyProviderFilters({ status: value, page: 1 })}
+          />
+        </View>
+        <View className="sf-inline-actions">
+          <ActionButton variant="secondary" onClick={() => applyProviderFilters({ page: 1 })}>搜索</ActionButton>
+          <ActionButton variant="secondary" onClick={() => applyProviderFilters({ q: '', status: 'all', page: 1 })}>重置</ActionButton>
+        </View>
+        <View className="sf-form-spacer" />
+        {providerJobs.items.length ? (
+          providerJobs.items.map((job) => (
+            <View className="sf-record" key={job.id}>
+              <View className="sf-record-head">
+                <View className="sf-record-main">
+                  <Text className="sf-record-title">{job.model_key || `Provider Job #${job.id}`}</Text>
+                  <Text className="sf-record-sub">{shortText(job.upstream_job_id || job.polling_url || job.provider_key, 56)}</Text>
+                </View>
+                <StatusPill status={job.status}>{statusText(job.status)}</StatusPill>
+              </View>
+              <View className="sf-record-foot">
+                <Text>{job.provider_key} / {job.mode}</Text>
+                <Text>{dateTime(job.updated_at || job.created_at)}</Text>
+              </View>
+              {job.error_message ? <Text className="sf-error-text">{job.error_message}</Text> : null}
+              {['queued', 'running', 'waiting_callback'].includes(job.status) ? (
+                <View className="sf-inline-actions">
+                  <ActionButton variant="secondary" loading={busy === `provider-${job.id}`} onClick={() => refreshProviderJob(job)}>同步状态</ActionButton>
+                </View>
+              ) : null}
+            </View>
+          ))
+        ) : (
+          <EmptyState title="暂无 Provider 视频任务" subtitle="运行文生视频或图生视频后，上游任务会显示在这里。" />
+        )}
+        <Pager page={providerJobs.page} totalPages={providerJobs.totalPages} total={providerJobs.total} onChange={(nextPage) => applyProviderFilters({ page: nextPage })} />
       </Section>
 
       <Section title="任务详情" subtitle={selected ? `任务 #${selected.id}` : '点击任务查看完整事件。'}>

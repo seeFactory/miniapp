@@ -29,27 +29,31 @@ export default function WalletPage() {
   const [summary, setSummary] = useState(null);
   const [ledgerFilters, setLedgerFilters] = useState({ page: 1, pageSize: 6, q: '', direction: 'all' });
   const [orderFilters, setOrderFilters] = useState({ page: 1, pageSize: 6, q: '', status: 'all' });
+  const [withdrawFilters, setWithdrawFilters] = useState({ page: 1, pageSize: 6, status: 'all' });
   const [ledgers, setLedgers] = useState(normalizePage([], 6));
   const [orders, setOrders] = useState(normalizePage([], 6));
+  const [withdraws, setWithdraws] = useState(normalizePage([], 6));
   const [amount, setAmount] = useState('100');
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
 
-  const load = async (nextLedgerFilters = ledgerFilters, nextOrderFilters = orderFilters) => {
+  const load = async (nextLedgerFilters = ledgerFilters, nextOrderFilters = orderFilters, nextWithdrawFilters = withdrawFilters) => {
     if (!requireAuth()) return;
     setMessage('');
     try {
-      const [balancePayload, nextSummary, ledgerPayload, orderPayload] = await Promise.all([
+      const [balancePayload, nextSummary, ledgerPayload, orderPayload, withdrawPayload] = await Promise.all([
         api('/api/wallet/balance'),
         api('/api/users/me/summary'),
         api(`/api/wallet/ledgers${queryFrom(nextLedgerFilters)}`),
         api(`/api/payments/recharge-orders${queryFrom(nextOrderFilters)}`),
+        api(`/api/withdraw-orders${queryFrom(nextWithdrawFilters)}`),
       ]);
       setBalance(balancePayload.balanceCents || 0);
       setSummary(nextSummary);
       setLedgers(normalizePage(ledgerPayload, nextLedgerFilters.pageSize));
       setOrders(normalizePage(orderPayload, nextOrderFilters.pageSize));
+      setWithdraws(normalizePage(withdrawPayload, nextWithdrawFilters.pageSize));
     } catch (error) {
       setTone('error');
       setMessage(error.message || '钱包数据加载失败。');
@@ -75,7 +79,7 @@ export default function WalletPage() {
       });
       setTone('good');
       setMessage(`已创建充值订单 ${order.externalNo || `#${order.id}`}，等待管理员确认收款。`);
-      await load(ledgerFilters, { ...orderFilters, page: 1 });
+      await load(ledgerFilters, { ...orderFilters, page: 1 }, withdrawFilters);
     } catch (error) {
       setTone('error');
       setMessage(error.message || '充值订单创建失败。');
@@ -87,13 +91,19 @@ export default function WalletPage() {
   const updateLedgerFilters = (values) => {
     const next = { ...ledgerFilters, ...values };
     setLedgerFilters(next);
-    load(next, orderFilters);
+    load(next, orderFilters, withdrawFilters);
   };
 
   const updateOrderFilters = (values) => {
     const next = { ...orderFilters, ...values };
     setOrderFilters(next);
-    load(ledgerFilters, next);
+    load(ledgerFilters, next, withdrawFilters);
+  };
+
+  const updateWithdrawFilters = (values) => {
+    const next = { ...withdrawFilters, ...values };
+    setWithdrawFilters(next);
+    load(ledgerFilters, orderFilters, next);
   };
 
   return (
@@ -202,6 +212,49 @@ export default function WalletPage() {
           <EmptyState title="暂无订单" subtitle="创建充值订单后会显示在这里。" />
         )}
         <Pager page={orders.page} totalPages={orders.totalPages} total={orders.total} onChange={(nextPage) => updateOrderFilters({ page: nextPage })} />
+      </Section>
+
+      <Section title="提现申请" subtitle="查看提现冻结、审核、打款和驳回状态。">
+        <View className="sf-toolbar">
+          <SelectField
+            value={withdrawFilters.status}
+            options={[
+              { label: '全部状态', value: 'all' },
+              { label: '待审核', value: 'pending' },
+              { label: '已通过', value: 'approved' },
+              { label: '已打款', value: 'paid' },
+              { label: '已驳回', value: 'rejected' },
+              { label: '已取消', value: 'cancelled' },
+            ]}
+            onChange={(value) => updateWithdrawFilters({ status: value, page: 1 })}
+          />
+        </View>
+        <View className="sf-inline-actions">
+          <ActionButton variant="secondary" onClick={() => updateWithdrawFilters({ page: 1 })}>刷新</ActionButton>
+          <ActionButton variant="secondary" onClick={() => updateWithdrawFilters({ status: 'all', page: 1 })}>重置</ActionButton>
+        </View>
+        <View className="sf-form-spacer" />
+        {withdraws.items.length ? (
+          withdraws.items.map((order) => (
+            <View className="sf-record" key={order.id}>
+              <View className="sf-record-head">
+                <View className="sf-record-main">
+                  <Text className="sf-record-title">{money(order.amount_cents)}</Text>
+                  <Text className="sf-record-sub">{order.channel} / {order.account_no_masked || `提现 #${order.id}`}</Text>
+                </View>
+                <StatusPill status={order.status}>{statusText(order.status)}</StatusPill>
+              </View>
+              <View className="sf-record-foot">
+                <Text>到账 {money(order.arrival_cents)}</Text>
+                <Text>{dateTime(order.created_at)}</Text>
+              </View>
+              {order.reject_reason ? <Text className="sf-error-text">{order.reject_reason}</Text> : null}
+            </View>
+          ))
+        ) : (
+          <EmptyState title="暂无提现申请" subtitle="在我的账号页提交提现后会显示在这里。" />
+        )}
+        <Pager page={withdraws.page} totalPages={withdraws.totalPages} total={withdraws.total} onChange={(nextPage) => updateWithdrawFilters({ page: nextPage })} />
       </Section>
     </PageShell>
   );
