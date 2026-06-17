@@ -109,7 +109,7 @@ export default function WalletPage() {
 
   return (
     <PageShell
-      eyebrow="Billing"
+      eyebrow="账单"
       title="钱包与账单"
       subtitle="查看余额、充值订单和模型调用扣费流水。"
       message={message}
