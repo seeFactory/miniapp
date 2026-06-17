@@ -72,6 +72,54 @@ function sizeValue(draft) {
   return `${draft.width}x${draft.height}`;
 }
 
+function readWorkflowManifestFile() {
+  if (typeof document !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json,.seeflow';
+      input.onchange = async () => {
+        try {
+          const file = input.files?.[0];
+          if (!file) return reject(new Error('未选择文件'));
+          resolve(JSON.parse(await file.text()));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      input.click();
+    });
+  }
+
+  if (typeof Taro.chooseMessageFile === 'function') {
+    return Taro.chooseMessageFile({ count: 1, type: 'file', extension: ['json', 'seeflow'] })
+      .then((result) => {
+        const filePath = result.tempFiles?.[0]?.path;
+        const fileSystem = Taro.getFileSystemManager?.();
+        if (!filePath || !fileSystem) throw new Error('当前端不支持读取该文件');
+        return JSON.parse(fileSystem.readFileSync(filePath, 'utf8'));
+      });
+  }
+
+  return Promise.reject(new Error('当前端暂不支持选择 workflow 文件'));
+}
+
+function downloadWorkflowManifest(manifest, filename) {
+  const text = typeof manifest === 'string' ? manifest : JSON.stringify(manifest, null, 2);
+  if (typeof document !== 'undefined' && typeof Blob !== 'undefined') {
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    return true;
+  }
+  copyText(text, '已复制导出文件');
+  return false;
+}
+
 export default function WorkflowsPage() {
   const [draft, setDraft] = useState(emptyDraft);
   const [filters, setFilters] = useState({ page: 1, pageSize: 6, q: '', status: 'all' });
@@ -104,7 +152,8 @@ export default function WorkflowsPage() {
 
   const refreshEstimate = async (nextGraph = graph) => {
     try {
-      const result = await api('/api/billing/estimate', {
+      const estimatePath = draft.id ? `/api/workflows/${draft.id}/estimate` : '/api/billing/estimate';
+      const result = await api(estimatePath, {
         method: 'POST',
         data: { graph: nextGraph },
       });
@@ -269,12 +318,30 @@ export default function WorkflowsPage() {
     setBusy('export');
     try {
       const manifest = await api(`/api/workflows/${draft.id}/export`);
-      copyText(manifest, '已复制导出文件');
+      const downloaded = downloadWorkflowManifest(manifest, `seefactory-workflow-${draft.id}.seeflow`);
       setTone('good');
-      setMessage('单文件 workflow manifest 已复制到剪贴板。');
+      setMessage(downloaded ? '单文件 workflow manifest 已下载。' : '当前端已将单文件 workflow manifest 复制到剪贴板。');
     } catch (error) {
       setTone('error');
       setMessage(error.message || '导出失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const importWorkflow = async () => {
+    setBusy('import');
+    try {
+      const manifest = await readWorkflowManifestFile();
+      const detail = await api('/api/workflows/import', { method: 'POST', data: manifest });
+      setSelected(detail);
+      setDraft({ ...emptyDraft, ...extractDraftFromWorkflow(detail) });
+      setTone('good');
+      setMessage(`已导入 workflow：${detail.title}`);
+      await load({ ...filters, page: 1 });
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '导入失败，请检查单文件内容。');
     } finally {
       setBusy('');
     }
@@ -368,6 +435,7 @@ export default function WorkflowsPage() {
             <ActionButton variant="secondary" loading={busy === 'run'} onClick={runWorkflow}>运行</ActionButton>
             <ActionButton variant="secondary" loading={busy === 'publish'} onClick={publishWorkflow}>发布</ActionButton>
             <ActionButton variant="secondary" loading={busy === 'export'} onClick={exportWorkflow}>导出</ActionButton>
+            <ActionButton variant="secondary" loading={busy === 'import'} onClick={importWorkflow}>导入</ActionButton>
           </View>
         </View>
       </Section>

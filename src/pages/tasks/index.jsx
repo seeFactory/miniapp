@@ -30,6 +30,7 @@ export default function TasksPage() {
   const [providerJobs, setProviderJobs] = useState(normalizePage([], 8));
   const [selected, setSelected] = useState(null);
   const [events, setEvents] = useState([]);
+  const [nodes, setNodes] = useState([]);
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
@@ -71,12 +72,14 @@ export default function TasksPage() {
   const openTask = async (task) => {
     setBusy(`open-${task.id}`);
     try {
-      const [detail, eventList] = await Promise.all([
+      const [detail, eventList, nodeList] = await Promise.all([
         api(`/api/tasks/${task.id}`),
         api(`/api/tasks/${task.id}/events`),
+        api(`/api/tasks/${task.id}/nodes`),
       ]);
       setSelected(detail);
       setEvents(Array.isArray(eventList) ? eventList : []);
+      setNodes(Array.isArray(nodeList) ? nodeList : []);
       setTone('good');
       setMessage(`已打开任务 #${task.id}。`);
     } catch (error) {
@@ -258,6 +261,18 @@ export default function TasksPage() {
                 <Image className="sf-preview-image" src={outputUrl} mode="aspectFill" />
               </View>
             ) : null}
+            <View className="sf-event-list">
+              {nodes.length ? (
+                nodes.map((node) => (
+                  <View className="sf-event" key={node.id || node.node_id}>
+                    <Text className="sf-event-title">{node.node_label || node.label || node.component_key || node.node_id}</Text>
+                    <Text className="sf-event-time">{statusText(node.status)} · v{node.workflow_version_id || '-'}</Text>
+                  </View>
+                ))
+              ) : (
+                <EmptyState title="暂无节点明细" subtitle="旧任务或尚未进入执行阶段时不会写入节点记录。" />
+              )}
+            </View>
             <View className="sf-event-list">
               {events.length ? (
                 events.map((event) => (
