@@ -34,6 +34,7 @@ export default function WalletPage() {
   const [orders, setOrders] = useState(normalizePage([], 6));
   const [withdraws, setWithdraws] = useState(normalizePage([], 6));
   const [amount, setAmount] = useState('100');
+  const [rechargeChannel, setRechargeChannel] = useState('wechat');
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
@@ -66,19 +67,19 @@ export default function WalletPage() {
 
   const createOrder = async () => {
     const cents = Math.round(Number(amount || 0) * 100);
-    if (!cents || cents < 100) {
+    if (!cents || cents < 1) {
       setTone('error');
-      setMessage('充值金额至少 1 元。');
+      setMessage('充值金额需大于 0 元，最小单位为 0.01 元。');
       return;
     }
     setBusy('recharge');
     try {
       const order = await api('/api/payments/recharge-orders', {
         method: 'POST',
-        data: { amountCents: cents },
+        data: { amountCents: cents, channel: rechargeChannel },
       });
       setTone('good');
-      setMessage(`已创建充值订单 ${order.externalNo || `#${order.id}`}，等待管理员确认收款。`);
+      setMessage(`已创建 ${order.channel} 充值订单 ${order.externalNo || `#${order.id}`}，等待管理员确认收款。`);
       await load(ledgerFilters, { ...orderFilters, page: 1 }, withdrawFilters);
     } catch (error) {
       setTone('error');
@@ -134,6 +135,17 @@ export default function WalletPage() {
             ))}
           </View>
           <View className="sf-form-spacer" />
+          <SelectField
+            label="充值渠道"
+            value={rechargeChannel}
+            options={[
+              { label: '微信支付', value: 'wechat' },
+              { label: '支付宝', value: 'alipay' },
+              { label: '手动登记', value: 'manual' },
+            ]}
+            onChange={setRechargeChannel}
+          />
+          <View className="sf-form-spacer" />
           <TextField label="自定义金额" value={amount} type="number" placeholder="输入充值金额" onChange={setAmount} />
           <ActionButton loading={busy === 'recharge'} onClick={createOrder}>创建充值订单</ActionButton>
         </View>
@@ -174,7 +186,7 @@ export default function WalletPage() {
         <Pager page={ledgers.page} totalPages={ledgers.totalPages} total={ledgers.total} onChange={(nextPage) => updateLedgerFilters({ page: nextPage })} />
       </Section>
 
-      <Section title="充值订单" subtitle="手动充值订单需要平台确认后入账。">
+      <Section title="充值订单" subtitle="充值订单需要支付回调或平台确认后入账。">
         <View className="sf-toolbar">
           <TextField value={orderFilters.q} placeholder="搜索订单号或渠道" onChange={(value) => setOrderFilters((prev) => ({ ...prev, q: value }))} />
           <SelectField
@@ -203,7 +215,7 @@ export default function WalletPage() {
                 <StatusPill status={order.status}>{statusText(order.status)}</StatusPill>
               </View>
               <View className="sf-record-foot">
-                <Text>{order.channel || 'manual'}</Text>
+                <Text>{order.channel || 'manual'} · {order.purpose || 'balance_recharge'}</Text>
                 <Text>{dateTime(order.created_at)}</Text>
               </View>
             </View>

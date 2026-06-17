@@ -486,6 +486,15 @@ img[src=""] {
   padding: 16px;
 }
 
+.sf-payment-strip {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--sf-radius-lg);
+  background: var(--sf-surface-soft);
+}
+
 .sf-form-spacer {
   height: 14px;
 }

@@ -54,7 +54,6 @@ const emptyDraft = {
   palette: '低饱和新扁平',
   width: 1024,
   height: 1024,
-  includeResize: false,
   licenseMode: 'closed',
   tags: '海报,自动化',
   priceCents: 0,

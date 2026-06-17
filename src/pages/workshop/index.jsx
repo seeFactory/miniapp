@@ -36,6 +36,7 @@ export default function WorkshopPage() {
   const [commentText, setCommentText] = useState('');
   const [rating, setRating] = useState(5);
   const [report, setReport] = useState({ reason: '内容违规', detail: '' });
+  const [paymentChannel, setPaymentChannel] = useState('wechat');
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('info');
   const [busy, setBusy] = useState('');
@@ -123,6 +124,36 @@ export default function WorkshopPage() {
     } catch (error) {
       setTone('error');
       setMessage(error.message || '克隆失败。');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const createRunPayment = async (item = selected) => {
+    if (!requireAuth()) return;
+    const amount = Number(estimate?.estimatedCostCents || 0);
+    if (!item?.id || amount <= 0) {
+      setTone('info');
+      setMessage('当前样例无需创建支付订单。');
+      return;
+    }
+    setBusy(`pay-${item.id}`);
+    try {
+      const order = await api('/api/payments/recharge-orders', {
+        method: 'POST',
+        data: {
+          amountCents: amount,
+          channel: paymentChannel,
+          purpose: 'workflow_run',
+          refType: 'workshop_item',
+          refId: Number(item.id),
+        },
+      });
+      setTone('good');
+      setMessage(`已创建单次支付订单 ${order.externalNo || `#${order.id}`}，确认到账后即可运行。`);
+    } catch (error) {
+      setTone('error');
+      setMessage(error.message || '单次支付订单创建失败。');
     } finally {
       setBusy('');
     }
@@ -275,6 +306,22 @@ export default function WorkshopPage() {
               <Text>预估 {estimate ? money(estimate.estimatedCostCents) : money(selected.price_cents || 0)}</Text>
               <Text>收藏 {selected.favorite_count || 0} · 评论 {selected.comment_count || 0}</Text>
             </View>
+            {estimate?.estimatedCostCents > 0 ? (
+              <View className="sf-payment-strip">
+                <SelectField
+                  label="单次支付渠道"
+                  value={paymentChannel}
+                  options={[
+                    { label: '微信支付', value: 'wechat' },
+                    { label: '支付宝', value: 'alipay' },
+                  ]}
+                  onChange={setPaymentChannel}
+                />
+                <ActionButton variant="secondary" loading={busy === `pay-${selected.id}`} onClick={() => createRunPayment(selected)}>
+                  按预估费用支付
+                </ActionButton>
+              </View>
+            ) : null}
             <View className="sf-form-spacer" />
             <TextAreaField
               label="运行提示词"

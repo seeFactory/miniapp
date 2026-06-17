@@ -294,12 +294,6 @@ const COMPONENT_META = {
     description: '基于图片资产生成视频运动描述和执行任务。',
     tone: 'green',
   },
-  'image.resize': {
-    label: '图片尺寸调整',
-    category: '兼容',
-    description: '旧版 workflow 的兼容节点，新建链路默认不再使用。',
-    tone: 'yellow',
-  },
   'asset.output': {
     label: '资产输出',
     category: '输出',
@@ -354,7 +348,6 @@ export function buildPosterGraph({
   palette = '低饱和新扁平',
   width = 1024,
   height = 1024,
-  includeResize = false,
 } = {}) {
   const nodes = [
     {
@@ -392,28 +385,6 @@ export function buildPosterGraph({
     },
   ];
 
-  let finalNode = 'poster_render';
-
-  if (includeResize) {
-    nodes.push({
-      id: 'resize_output',
-      type: 'image.resize',
-      componentKey: 'image.resize',
-      component: 'image.resize',
-      label: '尺寸适配',
-      config: {
-        width: Number(width) || 1024,
-        height: Number(height) || 1024,
-      },
-    });
-    edges.push({
-      id: 'edge_render_to_resize',
-      source: 'poster_render',
-      target: 'resize_output',
-    });
-    finalNode = 'resize_output';
-  }
-
   nodes.push({
     id: 'asset_output',
     type: 'asset.output',
@@ -426,8 +397,8 @@ export function buildPosterGraph({
     },
   });
   edges.push({
-    id: `edge_${finalNode}_to_output`,
-    source: finalNode,
+    id: 'edge_poster_render_to_output',
+    source: 'poster_render',
     target: 'asset_output',
   });
 
@@ -447,9 +418,7 @@ export function extractDraftFromWorkflow(workflow = {}) {
   const nodes = graphNodes(workflow.graph);
   const input = nodes.find((node) => (node.component || node.type || node.componentKey) === 'input.text') || {};
   const render = nodes.find((node) => (node.component || node.type || node.componentKey) === 'image.poster.render') || {};
-  const resize = nodes.find((node) => (node.component || node.type || node.componentKey) === 'image.resize') || {};
   const config = render.config || {};
-  const resizeConfig = resize.config || {};
 
   return {
     id: workflow.id,
@@ -458,9 +427,9 @@ export function extractDraftFromWorkflow(workflow = {}) {
     prompt: input.config?.defaultValue || '',
     posterTitle: config.title || workflow.title || '',
     palette: config.palette || '低饱和新扁平',
-    width: resizeConfig.width || config.width || 1024,
-    height: resizeConfig.height || config.height || 1024,
-    includeResize: Boolean(resize.id || !nodes.length),
+    width: config.width || 1024,
+    height: config.height || 1024,
+    includeResize: false,
     licenseMode: workflow.license_mode || workflow.licenseMode || 'closed',
     tags: Array.isArray(workflow.tags) ? workflow.tags.join(',') : workflow.tags || '',
     graph: workflow.graph || buildPosterGraph(),
